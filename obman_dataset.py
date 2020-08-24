@@ -29,6 +29,24 @@ class obman(Dataset):
         self.sample_nPoint = 3000
 
         self.locations = {}
+        self.__load_dataset()
+
+    def __load_dataset(self):
+        for idx in range(self.dataset_size):
+            if idx % 10000 == 0:
+                print('loaded', str(idx // self.dataset_size * 100)+'%')
+            line = self.img_list[idx].strip()
+            img_path = os.path.join(self.img_root, self.mode, 'rgb_obj', line)
+            meta_path = img_path.replace('rgb_obj', 'meta').replace('jpg', 'pkl')
+            meta = pickle.load(open(meta_path, 'rb'))
+
+            obj_path = meta['obj_path']
+            obj_path_seg = obj_path.split('/')[4:]
+            obj_path_seg = [it + '/' for it in obj_path_seg]
+            obj_mesh_path = ''.join(obj_path_seg)[:-1]
+            obj_mesh_path = os.path.join(self.obj_root, obj_mesh_path)
+            save_name = obj_mesh_path.replace('model_normalized', 'contactmap').replace('obj', 'npy')
+            self.locations[str(idx)] = save_name
 
     def __len__(self):
         return self.dataset_size
