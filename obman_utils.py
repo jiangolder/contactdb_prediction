@@ -173,5 +173,5 @@ def get_saveName(line, mode):
     obj_path_seg = [it + '/' for it in obj_path_seg]
     obj_mesh_path = ''.join(obj_path_seg)[:-1]
     obj_mesh_path = os.path.join(obj_root, obj_mesh_path)
-    save_name = obj_mesh_path.replace('model_normalized', 'contactmap').replace('obj', 'npy')
+    save_name = obj_mesh_path.replace('model_normalized', 'contactmap').replace('.obj', '.npy')
     return save_name
