@@ -14,6 +14,7 @@ import argparse
 import configparser
 import pickle
 from IPython.core.debugger import set_trace
+import time
 osp = os.path
 
 torch.backends.cudnn.enabled = False
@@ -83,9 +84,28 @@ def eval_obman(data_dir, instruction, checkpoint_filename, config_filename, devi
   model.eval()
   dloader = DataLoader(dset, batch_size=1, shuffle=False, num_workers=8)
 
+  local_time = time.localtime(time.time())
+  time_str = str(local_time[0]) + '_' + str(local_time[1]) + '_' + str(local_time[2]) + '_' + str(local_time[3])
+  save_root = './logs/' + time_str + '_' + mode
+  if not os.path.exists(save_root):
+    os.makedirs(save_root)
+  log_root = save_root + '/log_unprocessed.txt'
+  log_file = open(log_root, 'w+')
+  log_file.close()
+
+  unprocessed = set()
+
   img_list = obman_utils.get_img_list_val(mode)
   for batch_idx, (obj_pc, idx) in enumerate(dloader):
-    B = obj_pc.size(0) # set B=1
+    B, D, N = obj_pc.size() # set B=1
+    if N >= 100000:
+      if idx.numpy()[0] not in unprocessed:
+        unprocessed.add(idx.nunmpy()[0])
+        out_str = str(idx.numpy()[0])
+        with open(log_root, 'a') as f:
+          f.write(out_str + '\n')
+        print('idx {} exceed size'.format(out_str))
+      continue
     if B != 1:
       print('wrong batch size', B)
     line = img_list[idx.numpy()[0]]
