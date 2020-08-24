@@ -3,7 +3,7 @@ import open3d
 import os
 osp = os.path
 
-test_objects = ['mug', 'pan', 'wine_glass']
+test_objects = ['mug', 'pan', 'wine_glass', 'apple']
 
 
 base_dir = osp.expanduser(osp.join('~', 'deepgrasp_data'))

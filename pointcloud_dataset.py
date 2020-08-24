@@ -100,6 +100,7 @@ class PointCloudDataset(tdata.Dataset):
       cs.append(c)
     cs = np.vstack(cs)
 
+    print(pts.size(), cs.size())
     return pts.astype(np.float32), cs.astype(np.int64)
 
 if __name__ == '__main__':

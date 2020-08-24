@@ -2,6 +2,7 @@ from models.voxnet import DiverseVoxNet as VoxNet
 from models.pointnet import DiversePointNet as PointNet
 from voxel_dataset import VoxelDataset
 from pointcloud_dataset import PointCloudDataset
+from obman_dataset import obman
 from models.losses import DiverseLoss
 
 import numpy as np
@@ -16,7 +17,7 @@ from IPython.core.debugger import set_trace
 osp = os.path
 
 def show_pointcloud_texture(geom, tex_preds):
-  cmap = np.asarray([[0, 0, 1], [1, 0, 0]])
+  cmap = np.asarray([[0, 0, 1], [1, 0, 0]]) # rgb
   x, y, z, scale = geom
   pts = np.vstack((x, y, z)).T * scale[0]
   for tex_pred in tex_preds:
@@ -42,8 +43,8 @@ def show_voxel_texture(geom, tex_preds):
     open3d.draw_geometries([pc])
 
 
-def eval(data_dir, instruction, checkpoint_filename, config_filename, device_id,
-    test_only=False, show_object=None, save_preds=False):
+def eval_obman(data_dir, instruction, checkpoint_filename, config_filename, device_id,
+    test_only=False, mode='train'):
   # config
   config = configparser.ConfigParser()
   config.read(config_filename)
@@ -52,13 +53,6 @@ def eval(data_dir, instruction, checkpoint_filename, config_filename, device_id,
   # cuda
   use_cuda = torch.cuda.is_available()
   device = torch.device("cuda" if use_cuda else "cpu")
-  # if 'CUDA_VISIBLE_DEVICES' not in os.environ:
-  #   os.environ['CUDA_VISIBLE_DEVICES'] = str(device_id)
-  # else:
-  #   devices = os.environ['CUDA_VISIBLE_DEVICES']
-  #   devices = devices.split(',')[device_id]
-  #   os.environ['CUDA_VISIBLE_DEVICES'] = devices
-  # device = 'cuda:0'
 
   # load checkpoint
   checkpoint = torch.load(checkpoint_filename, map_location=torch.device('cpu'))
@@ -76,71 +70,48 @@ def eval(data_dir, instruction, checkpoint_filename, config_filename, device_id,
     model = PointNet(n_ensemble=checkpoint.n_ensemble, droprate=droprate)
     model.pointnet.load_state_dict(checkpoint.pointnet.state_dict())
     n_points = config['hyperparams'].getint('n_points')
-    dset = PointCloudDataset(n_points=n_points, random_scale=0, **kwargs)
+    #dset = PointCloudDataset(n_points=n_points, random_scale=0, **kwargs)
+    dset = obman(mode=mode)
   else:
     raise NotImplementedError
   if 'pointnet' not in model_name:
     model.eval()
   model.to(device=device)
-
-  loss_fn = DiverseLoss(train=False, eval_mode=True)
+  model.eval()
 
   # eval loop!
-  dloader = DataLoader(dset)
-  for batch_idx, batch in enumerate(dloader):
-    object_name = list(dset.filenames.keys())[batch_idx]
-    if show_object is not None:
-      if object_name != show_object:
-        continue
-    geom, tex_targs = batch
-    geom = geom.to(device=device)
-    tex_targs = tex_targs.to(device=device)
-    with torch.no_grad():
-      tex_preds = model(geom)
+  dloader = DataLoader(dset, batch_size=1, shuffle=False, num_workers=8)
 
-    loss, match_indices = loss_fn(tex_preds, tex_targs)
-    print('{:s} error = {:.4f}'.format(object_name, loss.item()))
-
-    geom      = geom.cpu().numpy().squeeze()
-    tex_preds = tex_preds.cpu().numpy().squeeze()
-    match_indices = match_indices.cpu().numpy().squeeze()
-    tex_targs = tex_targs.cpu().numpy().squeeze()
-
-    if (save_preds):
-      output_data = {
-          'checkpoint_filename': checkpoint_filename,
-          'geom': geom,
-          'tex_preds': tex_preds,
-          'match_indices': match_indices,
-          'tex_targs': tex_targs}
-      output_filename = '{:s}_{:s}_{:s}_diversenet_preds.pkl'.format(object_name,
-          instruction, model_name)
-      with open(output_filename, 'wb') as f:
-        pickle.dump(output_data, f)
-      print('{:s} saved'.format(output_filename))
-
-    if show_object is not None:
-      if 'pointnet' in model_name:
-        show_pointcloud_texture(geom, tex_preds)
-      elif 'voxnet' in model_name:
-        show_voxel_texture(geom, tex_preds)
-        break
-      else:
-        raise NotImplementedError
+  for batch_idx, (obj_pc, idx) in enumerate(dloader):
+    B = obj_pc[0].size(0) # set B=1
+    if B != 1:
+      print('wrong batch size', B)
+    save_name = dset.locations[str(idx[0])]
+    if os.path.isfile(save_name):
+      continue # already predicted on this object model
+    else:
+      with torch.no_grad():
+        obj_pc.to(device)
+        tex_preds = model(obj_pc) # [1,10,2,N]
+        save_tensor = tex_preds.cpu().numpy().squeeze() # [10,2,N]
+        save_tensor = np.argmax(save_tensor, axis=1) # [10,1,N], dim2: 1 for positive
+        print(str(batch_idx/len(dloader)*100) + '%', save_name)
+        np.save(save_tensor, save_name)
 
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--data_dir', default=osp.join('data', 'voxelized_meshes'))
-  parser.add_argument('--instruction', required=True)
-  parser.add_argument('--checkpoint_filename', required=True)
-  parser.add_argument('--config_filename', required=True)
+  parser.add_argument('--instruction', type=str, default='use')
+  parser.add_argument('--checkpoint_filename', type=str, default='data/checkpoints/use_pointnet_diversenet/model_pointnet.pth')
+  parser.add_argument('--config_filename', type=str, default='configs/pointnet.ini')
   parser.add_argument('--test_only', action='store_true')
   parser.add_argument('--device_id', default=0)
   parser.add_argument('--show_object', default=None)
+  parser.add_argument('--mode', type=str, default='train')
   args = parser.parse_args()
 
-  eval(osp.expanduser(args.data_dir), args.instruction,
-    osp.expanduser(args.checkpoint_filename),
-    osp.expanduser(args.config_filename), args.device_id,
-    test_only=args.test_only, show_object=args.show_object)
+  eval_obman(osp.expanduser(args.data_dir), args.instruction,
+             osp.expanduser(args.checkpoint_filename),
+             osp.expanduser(args.config_filename), args.device_id,
+             test_only=args.test_only, mode=args.mode)
