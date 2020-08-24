@@ -158,9 +158,9 @@ class DiversePointNet(nn.Module):
     N, _, P = xs.shape
     preds = []
     for x in xs:
-      x = x.view(1, *x.shape).expand(self.n_ensemble, -1, -1) 
+      x = x.contiguous().view(1, *x.shape).expand(self.n_ensemble, -1, -1)
       c = torch.eye(self.n_ensemble, dtype=x.dtype, device=x.device)
-      c = c.view(self.n_ensemble, self.n_ensemble, 1).expand(-1, -1, P)
+      c = c.contiguous().view(self.n_ensemble, self.n_ensemble, 1).expand(-1, -1, P)
       pred = self.pointnet(x, c)
       preds.append(pred)
     preds = torch.stack(preds)

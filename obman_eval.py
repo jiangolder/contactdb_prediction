@@ -53,6 +53,7 @@ def eval_obman(data_dir, instruction, checkpoint_filename, config_filename, devi
   # cuda
   use_cuda = torch.cuda.is_available()
   device = torch.device("cuda" if use_cuda else "cpu")
+  print('using device', device)
 
   # load checkpoint
   checkpoint = torch.load(checkpoint_filename, map_location=torch.device('cpu'))
@@ -92,7 +93,7 @@ def eval_obman(data_dir, instruction, checkpoint_filename, config_filename, devi
       continue # already predicted on this object model
     else:
       with torch.no_grad():
-        obj_pc.to(device)
+        obj_pc = obj_pc.to(device)
         tex_preds = model(obj_pc) # [1,10,2,N]
         save_tensor = tex_preds.cpu().numpy().squeeze() # [10,2,N]
         save_tensor = np.argmax(save_tensor, axis=1) # [10,1,N], dim2: 1 for positive
