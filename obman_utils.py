@@ -1,5 +1,7 @@
 import torch
 import numpy as np
+import os
+import pickle
 
 def idx2onehot(idx, n):
 
@@ -147,3 +149,29 @@ def pc_normalize(pc):
     pc = pc / m
     return pc
 
+def get_img_list_val(mode):
+    if mode == "train":
+        file_path = '/hand-object-3/download/dataset/ObMan/obman/train.txt'
+    elif mode == "val":
+        file_path = '/hand-object-3/download/dataset/ObMan/obman/val.txt'
+    else:
+        file_path = '/hand-object-3/download/dataset/ObMan/obman/test.txt'
+    img_list = readTxt_obman(file_path)
+    return img_list
+
+def get_saveName(line, mode):
+    img_root='/hand-object-3/download/dataset/ObMan/obman'
+    obj_root = '/hand-object-3/download/dataset'
+
+    line = line.strip()
+    img_path = os.path.join(img_root, mode, 'rgb_obj', line)
+    meta_path = img_path.replace('rgb_obj', 'meta').replace('jpg', 'pkl')
+    meta = pickle.load(open(meta_path, 'rb'))
+
+    obj_path = meta['obj_path']
+    obj_path_seg = obj_path.split('/')[4:]
+    obj_path_seg = [it + '/' for it in obj_path_seg]
+    obj_mesh_path = ''.join(obj_path_seg)[:-1]
+    obj_mesh_path = os.path.join(obj_root, obj_mesh_path)
+    save_name = obj_mesh_path.replace('model_normalized', 'contactmap').replace('obj', 'npy')
+    return save_name

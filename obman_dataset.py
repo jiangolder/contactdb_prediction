@@ -6,6 +6,7 @@ from torchvision import transforms
 import numpy as np
 import obman_utils as utils
 import time
+from collections import defaultdict
 
 class obman(Dataset):
     def __init__(self, img_root='/hand-object-3/download/dataset/ObMan/obman',
@@ -28,8 +29,8 @@ class obman(Dataset):
         self.transform = transforms.ToTensor()
         self.sample_nPoint = 3000
 
-        self.locations = {}
-        self.__load_dataset()
+        self.locations = defaultdict(str)
+        #self.__load_dataset()
 
     def __load_dataset(self):
         for idx in range(self.dataset_size):
@@ -82,9 +83,9 @@ class obman(Dataset):
         obj_scale_tensor = torch.tensor(obj_scale).type_as(obj_xyz_normalized).repeat(nPoint, 1)  # [N, 1]
         obj_pc = torch.cat((obj_xyz_normalized, obj_scale_tensor), dim=-1).permute(1, 0) # [4,N]
 
-        save_name = obj_mesh_path.replace('model_normalized', 'contactmap').replace('obj','npy')
+        #save_name = obj_mesh_path.replace('model_normalized', 'contactmap').replace('obj','npy')
         #prediction_exist = os.path.isfile(save_name)
-        self.locations[str(idx)] = save_name
+        #self.locations[str(idx)] = self.locations.get()save_name
         # if prediction_exist:
         #     exist = 1
         # else:

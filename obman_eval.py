@@ -4,7 +4,7 @@ from voxel_dataset import VoxelDataset
 from pointcloud_dataset import PointCloudDataset
 from obman_dataset import obman
 from models.losses import DiverseLoss
-
+import obman_utils
 import numpy as np
 import open3d
 import os
@@ -78,15 +78,16 @@ def eval_obman(data_dir, instruction, checkpoint_filename, config_filename, devi
     model.eval()
   model.to(device=device)
   model.eval()
-
-  # eval loop!
   dloader = DataLoader(dset, batch_size=1, shuffle=False, num_workers=8)
 
+  img_list = obman_utils.get_img_list_val(mode)
   for batch_idx, (obj_pc, idx) in enumerate(dloader):
     B = obj_pc.size(0) # set B=1
     if B != 1:
       print('wrong batch size', B)
-    save_name = dset.locations[str(idx.numpy()[0])]
+    line = img_list[idx.numpy()[0]]
+    save_name = obman_utils.get_saveName(line, mode)
+    #save_name = dset.locations[str(idx.numpy()[0])]
     if os.path.isfile(save_name):
       continue # already predicted on this object model
     else:
@@ -95,8 +96,10 @@ def eval_obman(data_dir, instruction, checkpoint_filename, config_filename, devi
         tex_preds = model(obj_pc) # [1,10,2,N]
         save_tensor = tex_preds.cpu().numpy().squeeze() # [10,2,N]
         save_tensor = np.argmax(save_tensor, axis=1) # [10,1,N], dim2: 1 for positive
-        print(str(batch_idx/len(dloader)*100) + '%', save_name)
-        np.save(save_tensor, save_name)
+        if batch_idx % 1000 == 0:
+          print(str(batch_idx/len(dloader)*100) + '%', save_name)
+        #np.save(save_tensor, save_name)
+        np.save(save_name, save_tensor)
 
 
 if __name__ == '__main__':
