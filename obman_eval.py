@@ -16,6 +16,8 @@ import pickle
 from IPython.core.debugger import set_trace
 osp = os.path
 
+torch.backends.cudnn.enabled = False
+
 def show_pointcloud_texture(geom, tex_preds):
   cmap = np.asarray([[0, 0, 1], [1, 0, 0]]) # rgb
   x, y, z, scale = geom

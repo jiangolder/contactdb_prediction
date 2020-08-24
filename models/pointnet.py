@@ -37,7 +37,7 @@ class STN3d(nn.Module):
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))
         x = torch.max(x, 2, keepdim=True)[0]
-        x = x.view(-1, 1024)
+        x = x.contiguous().view(-1, 1024)
 
         x = F.relu(self.bn4(self.fc1(x)))
         x = F.relu(self.bn5(self.fc2(x)))
