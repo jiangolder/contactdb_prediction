@@ -83,10 +83,10 @@ def eval_obman(data_dir, instruction, checkpoint_filename, config_filename, devi
   dloader = DataLoader(dset, batch_size=1, shuffle=False, num_workers=8)
 
   for batch_idx, (obj_pc, idx) in enumerate(dloader):
-    B = obj_pc[0].size(0) # set B=1
+    B = obj_pc.size(0) # set B=1
     if B != 1:
       print('wrong batch size', B)
-    save_name = dset.locations[str(idx[0])]
+    save_name = dset.locations[str(idx.numpy()[0])]
     if os.path.isfile(save_name):
       continue # already predicted on this object model
     else:
