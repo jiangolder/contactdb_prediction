@@ -81,7 +81,6 @@ def eval_obman(data_dir, instruction, checkpoint_filename, config_filename, devi
   if 'pointnet' not in model_name:
     model.eval()
   model.to(device=device)
-  model.eval()
   dloader = DataLoader(dset, batch_size=1, shuffle=False, num_workers=8)
 
   local_time = time.localtime(time.time())
@@ -94,6 +93,7 @@ def eval_obman(data_dir, instruction, checkpoint_filename, config_filename, devi
   log_file.close()
 
   unprocessed = set()
+  reprocessed = dict()
 
   img_list = obman_utils.get_img_list_val(mode)
   for batch_idx, (obj_pc, idx) in enumerate(dloader):
@@ -101,28 +101,26 @@ def eval_obman(data_dir, instruction, checkpoint_filename, config_filename, devi
     if N >= 100000:
       if idx.numpy()[0] not in unprocessed:
         unprocessed.add(idx.nunmpy()[0])
-        out_str = str(idx.numpy()[0])
+        out_str = img_list[idx.numpy()[0]]
         with open(log_root, 'a') as f:
           f.write(out_str + '\n')
         print('idx {} exceed size'.format(out_str))
       continue
     if B != 1:
       print('wrong batch size', B)
+
     line = img_list[idx.numpy()[0]]
     save_name = obman_utils.get_saveName(line, mode)
-    #save_name = dset.locations[str(idx.numpy()[0])]
     if os.path.isfile(save_name):
-      continue # already predicted on this object model
-    else:
-      with torch.no_grad():
-        obj_pc = obj_pc.to(device)
-        tex_preds = model(obj_pc) # [1,10,2,N]
-        save_tensor = tex_preds.cpu().numpy().squeeze() # [10,2,N]
-        save_tensor = np.argmax(save_tensor, axis=1) # [10,1,N], dim2: 1 for positive
-        if batch_idx % 1000 == 0:
-          print(str(batch_idx/len(dloader)*100) + '%', save_name)
-        #np.save(save_tensor, save_name)
-        np.save(save_name, save_tensor)
+      tmp = np.load(save_name)
+      if np.sum(tmp) != 0: # already predicted (reprocessed) for this object model
+        continue
+    with torch.no_grad():
+      obj_pc = obj_pc.to(device)
+      tex_preds = model(obj_pc) # [1,10,2,N]
+      save_tensor = tex_preds.cpu().numpy().squeeze() # [10,2,N]
+      save_tensor = np.argmax(save_tensor, axis=1) # [10,1,N], dim2: 1 for positive
+      np.save(save_name, save_tensor)
 
 
 if __name__ == '__main__':

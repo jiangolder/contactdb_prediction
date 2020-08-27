@@ -151,10 +151,13 @@ def pc_normalize(pc):
 
 def get_img_list_val(mode):
     if mode == "train":
+        file_path = '/hand-object-3/hanwen/contactdb_prediction/logs/2020_8_24_9_train/log_unprocessed.txt'
         file_path = '/hand-object-3/download/dataset/ObMan/obman/train.txt'
     elif mode == "val":
+        file_path = '/hand-object-3/hanwen/contactdb_prediction/logs/2020_8_24_7_val/log_unprocessed.txt'
         file_path = '/hand-object-3/download/dataset/ObMan/obman/val.txt'
     else:
+        file_path = '/hand-object-3/hanwen/contactdb_prediction/logs/2020_8_24_8_test/log_unprocessed.txt'
         file_path = '/hand-object-3/download/dataset/ObMan/obman/test.txt'
     img_list = readTxt_obman(file_path)
     return img_list
