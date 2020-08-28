@@ -93,14 +93,13 @@ def eval_obman(data_dir, instruction, checkpoint_filename, config_filename, devi
   log_file.close()
 
   unprocessed = set()
-  reprocessed = dict()
 
   img_list = obman_utils.get_img_list_val(mode)
   for batch_idx, (obj_pc, idx) in enumerate(dloader):
     B, D, N = obj_pc.size() # set B=1
     if N >= 100000:
       if idx.numpy()[0] not in unprocessed:
-        unprocessed.add(idx.nunmpy()[0])
+        unprocessed.add(idx.numpy()[0])
         out_str = img_list[idx.numpy()[0]]
         with open(log_root, 'a') as f:
           f.write(out_str + '\n')
@@ -108,19 +107,17 @@ def eval_obman(data_dir, instruction, checkpoint_filename, config_filename, devi
       continue
     if B != 1:
       print('wrong batch size', B)
-
     line = img_list[idx.numpy()[0]]
     save_name = obman_utils.get_saveName(line, mode)
     if os.path.isfile(save_name):
-      tmp = np.load(save_name)
-      if np.sum(tmp) != 0: # already predicted (reprocessed) for this object model
-        continue
-    with torch.no_grad():
-      obj_pc = obj_pc.to(device)
-      tex_preds = model(obj_pc) # [1,10,2,N]
-      save_tensor = tex_preds.cpu().numpy().squeeze() # [10,2,N]
-      save_tensor = np.argmax(save_tensor, axis=1) # [10,1,N], dim2: 1 for positive
-      np.save(save_name, save_tensor)
+      continue # already predicted (reprocessed) for this object model
+    else:
+      with torch.no_grad():
+        obj_pc = obj_pc.to(device)
+        tex_preds = model(obj_pc) # [1,10,2,N]
+        save_tensor = tex_preds.cpu().numpy().squeeze() # [10,2,N]
+        save_tensor = np.argmax(save_tensor, axis=1) # [10,N], dim2: 1 for positive
+        np.save(save_name, save_tensor)
 
 
 if __name__ == '__main__':

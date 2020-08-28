@@ -15,13 +15,13 @@ class obman(Dataset):
 
         self.mode = mode
         if self.mode == "train":
-            self.file_path = '/hand-object-3/hanwen/contactdb_prediction/logs/2020_8_24_9_train/log_unprocessed.txt'
+            #self.file_path = '/hand-object-3/hanwen/contactdb_prediction/logs/2020_8_24_9_train/log_unprocessed.txt'
             self.file_path = '/hand-object-3/download/dataset/ObMan/obman/train.txt'
         elif self.mode == "val":
-            self.file_path = '/hand-object-3/hanwen/contactdb_prediction/logs/2020_8_24_7_val/log_unprocessed.txt'
+            #self.file_path = '/hand-object-3/hanwen/contactdb_prediction/logs/2020_8_24_7_val/log_unprocessed.txt'
             self.file_path = '/hand-object-3/download/dataset/ObMan/obman/val.txt'
         else:
-            self.file_path = '/hand-object-3/hanwen/contactdb_prediction/logs/2020_8_24_8_test/log_unprocessed.txt'
+            #self.file_path = '/hand-object-3/hanwen/contactdb_prediction/logs/2020_8_24_8_test/log_unprocessed.txt'
             self.file_path = '/hand-object-3/download/dataset/ObMan/obman/test.txt'
         self.img_list = utils.readTxt_obman(self.file_path)
 
@@ -44,14 +44,6 @@ class obman(Dataset):
         #img = Image.open(img_path)
         meta = pickle.load(open(meta_path, 'rb'))
 
-        # hand information
-        # hand_pose = torch.tensor(meta['hand_pose'])
-        # hand_shape = torch.tensor(meta['shape'])
-        # hand_trans = torch.tensor(meta['trans'])
-        # hand_info = torch.cat((hand_pose, hand_shape), dim=0) # [55]
-        # hand_side = meta['side']
-        #hand_xyz = torch.tensor(meta['verts_3d']).permute(1,0) # [778, 3] -> [3, 778]
-
         # object information
         obj_id = meta['sample_id']
 
@@ -67,14 +59,6 @@ class obman(Dataset):
         obj_scale = meta['obj_scale']
         obj_scale_tensor = torch.tensor(obj_scale).type_as(obj_xyz_normalized).repeat(nPoint, 1)  # [N, 1]
         obj_pc = torch.cat((obj_xyz_normalized, obj_scale_tensor), dim=-1).permute(1, 0) # [4,N]
-
-        #save_name = obj_mesh_path.replace('model_normalized', 'contactmap').replace('obj','npy')
-        #prediction_exist = os.path.isfile(save_name)
-        #self.locations[str(idx)] = self.locations.get()save_name
-        # if prediction_exist:
-        #     exist = 1
-        # else:
-        #     exist = 0
 
         return (obj_pc, torch.tensor(idx))
 
